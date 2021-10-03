@@ -1,0 +1,101 @@
+---
+title: "Lab3"
+author: "Adnan Salihovic"
+date: "10/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 7)
+```
+
+```{r}
+library(ggplot2)
+library(scales)
+library(tidyverse)
+library(dplyr)
+
+dat <- readxl::read_xls('Downloads/gss.xls')
+dat <- dat[complete.cases(dat),]
+dat <- rename(dat, MaritalStatus = "Marital status")
+dat <- rename(dat, Education= "Highest year of school completed")
+dat <- rename(dat, Sex = "Respondents sex")
+dat <- rename(dat, PartyAffiliation = "Political party affiliation")
+dat <- rename(dat, Happiness = "General happiness")
+dat <- rename(dat,Year = 'Gss year for this respondent')
+```
+
+
+```{r}
+
+test <- dat%>%
+  group_by(MaritalStatus)%>%
+  summarize(as.numeric(Education))
+test<- na.omit(test)
+
+test <- rename(test, Education = "as.numeric(Education)")
+ggplot(test,aes(x = MaritalStatus, y=Education)) +geom_boxplot() + ggtitle("Boxplot of Marital Status vs Education")
+test%>%
+  group_by(MaritalStatus)%>%
+  summarize(average = mean(Education))
+
+sprintf("Average education: Married = 12.96828, Never Married = 13.38954, Divorced = 13.10582, Widowed = 11.19825, Seperated = 11.85580, No Answer = 15.47826")
+```
+
+```{r}
+
+df <- dat %>%
+  group_by(MaritalStatus)%>%
+  filter(Education != "No answer" & Education != "Don't know")
+
+dftest<- df%>%
+  group_by(MaritalStatus)%>%
+  filter((as.numeric(Education) > 12.98 & MaritalStatus == "Married") | (as.numeric(Education) > 13.38 & MaritalStatus == "Never married") | (as.numeric(Education) > 13.105 & MaritalStatus == "Divorced") | (as.numeric(Education) > 11.19 & MaritalStatus == "Widowed") | (as.numeric(Education) > 11.85 & MaritalStatus == "Separated") | (as.numeric(Education) > 15.47 & MaritalStatus == "No answer"))
+
+str(dftest)
+```
+
+```{r}
+df4 <- dat %>%
+        mutate(HappinessVal = case_when(Happiness == "Not applicable" ~ 1, Happiness == "No answer" ~ 2, Happiness == "Not too happy" ~ 3, Happiness == "Don't know" ~ 4, Happiness == "Pretty happy" ~ 5, Happiness == "Very happy" ~ 6))
+
+ggplot(df4,aes(x = Happiness, fill = MaritalStatus)) + geom_bar()+ facet_grid(~MaritalStatus) + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Side by Side Bar Graph of Happiness Values per Marital Status")
+
+df4%>%
+  group_by(MaritalStatus)%>%
+  summarize(AverageHappiness = mean(HappinessVal),
+            nrows = n())
+
+print("In every marital status there seems to be more happy people than there are unhappy people as can be seen by the bar graph where pretty happy and very happy being above the other bars in all values, however when looking at the average happiness, all of the groups are below a 5, (5 or higher means happy). Married couples are the closest marital status to being considered happy with an average of 4.96 while the lowest is no answer with 4.0 and seperated with 4.34")
+```
+
+```{r}
+
+ggplot(df4,aes(x = Happiness, y = HappinessVal, fill = PartyAffiliation)) + geom_bar(position = "fill", stat = "identity")+ facet_grid(~MaritalStatus)+ theme(axis.text.x = element_text(angle = 90)) + ggtitle("Side by Side Bar Graph of Happiness Values per Marital Status with Relation to Party Affiliation")
+
+df4%>%
+  summarize(table(PartyAffiliationCounts = df4$PartyAffiliation),
+            nrows = n())
+
+print("Participants who chose 'Dont know' as an option for happiness have increased numbers in independent party affiliation than participants who chose the 'Very happy' option. Participants who chose 'Very happy' and 'Pretty happy', have more mixed results in party affiliation, however people who even had a hint of republican/democrat (Strong/not strong/near) dominate the percentages over other party/ dont know/ independent/ no answer. Party Affiliation does not significantly affect the relationship found in question 3.")
+
+```
+
+```{r}
+print("Question 5: Does year participated affect happiness? ")
+
+ggplot(df4,aes(x = Happiness, fill = Year)) + geom_bar()+ facet_wrap(~Year) + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Happiness values by Year")
+
+df4%>%
+  group_by(Year)%>%
+  summarize(AverageHappiness = mean(HappinessVal),
+            nrows = n())
+
+print("Happiness is generally stagnant across the years with most people being considered happy, however in years 2002,2004,and 2006 there was a massive increase in not applicable votes as seen in the graphs, that brought the average happiness for those years below happiness value 4 which results in the average participant being considered unhappy.")
+
+```
+
+
+
+
+
